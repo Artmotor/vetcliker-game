@@ -24,22 +24,21 @@ const soundToggle = document.getElementById('sound-toggle');
 // Настройка размера canvas
 function setupCanvas() {
     const container = document.getElementById('game-container');
-    const size = Math.min(container.clientWidth, container.clientHeight * 1.8);
-    canvas.width = size;
-    canvas.height = size / 1.8;
-}
+    const containerRect = container.getBoundingClientRect();
 
-let score = 0;
-let speed = 1.0;
-let animals = [];
-let gameRunning = false;
-let gamePaused = false;
-let lastSpawnTime = 0;
-let missedAnimals = 0;
-let lastUpdateTime = 0;
-let activeTool = 'syringe';
-let soundEnabled = true;
-let animationFrameId = null;
+    // Используем размеры контейнера вместо вычислений
+    canvas.width = containerRect.width;
+    canvas.height = containerRect.height;
+
+    // Для мобильных устройств ограничиваем максимальную высоту
+    if (window.innerWidth <= 768) {
+        const maxHeight = window.innerHeight * 0.7;
+        if (canvas.height > maxHeight) {
+            canvas.height = maxHeight;
+            canvas.width = canvas.height * (16/9);
+        }
+    }
+}
 
 // Звуковые эффекты
 let audioContext;

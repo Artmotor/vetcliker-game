@@ -21,8 +21,7 @@ body {
     position: relative;
     width: 100%;
     max-width: 800px;
-    height: auto;
-    aspect-ratio: 16/9;
+    height: 450px; /* Фиксированная высота вместо aspect-ratio */
     image-rendering: pixelated;
 }
 
@@ -151,9 +150,9 @@ body {
 .pixel-title {
     font-size: 36px;
     font-weight: bold;
-    text-shadow: 3px 3px 0 #000, 
-                -1px -1px 0 #000, 
-                1px -1px 0 #000, 
+    text-shadow: 3px 3px 0 #000,
+                -1px -1px 0 #000,
+                1px -1px 0 #000,
                 -1px 1px 0 #000;
     margin-bottom: 20px;
     color: #ffeb3b;
@@ -255,56 +254,86 @@ button:hover, button:active {
 }
 
 @media (max-width: 768px) {
-    #game-container {
-        width: 100vw;
+    body {
+        padding: 10px;
+        min-height: auto;
         height: 100vh;
-        max-width: none;
+        overflow: hidden;
     }
-    
+
+    #game-container {
+        width: 100%;
+        height: auto;
+        max-height: 80vh;
+        aspect-ratio: 16/9;
+    }
+
     #game-canvas {
         width: 100%;
         height: 100%;
-        border: none;
+        border: 2px solid #333;
     }
-    
+
     #ui {
-        font-size: 14px;
+        font-size: 12px;
         top: 5px;
         left: 5px;
+        padding: 5px 8px;
     }
-    
+
     .control-btn {
-        width: 35px;
-        height: 35px;
-        font-size: 16px;
+        width: 30px;
+        height: 30px;
+        font-size: 14px;
     }
-    
+
+    #tools {
+        bottom: 5px;
+        padding: 5px;
+        gap: 5px;
+    }
+
     .tool {
-        width: 35px;
-        height: 35px;
-        font-size: 16px;
+        width: 30px;
+        height: 30px;
+        font-size: 14px;
     }
-    
+
     .mobile-controls {
         display: flex;
+        bottom: 50px;
     }
-    
+
+    .mobile-btn {
+        width: 50px;
+        height: 50px;
+        font-size: 20px;
+    }
+
     #start-screen, #game-over, #rules-screen {
-        font-size: 18px;
+        font-size: 16px;
         padding: 15px;
     }
-    
+
     .pixel-title {
-        font-size: 28px;
+        font-size: 24px;
     }
-    
+
     .pixel-subtitle {
         font-size: 16px;
     }
-    
+
+    .pixel-text {
+        font-size: 14px;
+    }
+
     button {
-        padding: 10px 18px;
-        font-size: 16px;
+        padding: 8px 16px;
+        font-size: 14px;
+    }
+
+    .pixel-border {
+        padding: 15px;
     }
 }
 
@@ -344,32 +373,59 @@ button:hover, button:active {
     align-items: center;
     z-index: 9;
     color: white;
-    font-size: 32px;
+    font-size: 24px;
     text-shadow: 2px 2px 0 #000;
 }
 
-/* Стили для мобильных устройств */
-@media (max-width: 480px) {
-    .pixel-title {
-        font-size: 24px;
+/* Дополнительные стили для очень маленьких экранов */
+@media (max-width: 480px) and (max-height: 700px) {
+    #game-container {
+        max-height: 70vh;
     }
-    
+
+    .pixel-title {
+        font-size: 20px;
+    }
+
     .pixel-subtitle {
         font-size: 14px;
     }
-    
+
     .pixel-text {
         font-size: 12px;
     }
-    
+
     button {
-        padding: 8px 16px;
-        font-size: 14px;
+        padding: 6px 12px;
+        font-size: 12px;
     }
-    
-    .control-btn {
-        width: 30px;
-        height: 30px;
-        font-size: 14px;
+
+    #ui {
+        font-size: 10px;
+    }
+}
+
+/* Портретная ориентация */
+@media (max-width: 768px) and (orientation: portrait) {
+    #game-container {
+        width: 95%;
+        max-height: 60vh;
+    }
+
+    .mobile-controls {
+        bottom: 40px;
+    }
+}
+
+/* Ландшафтная ориентация */
+@media (max-width: 768px) and (orientation: landscape) {
+    #game-container {
+        width: 80%;
+        max-height: 85vh;
+    }
+
+    #ui {
+        flex-direction: row;
+        gap: 10px;
     }
 }
