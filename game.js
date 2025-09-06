@@ -45,6 +45,8 @@ let lastUpdateTime = 0;
 let activeTool = 'syringe';
 let soundEnabled = true;
 let animationFrameId = null;
+let danceAnimationInterval = null;
+let chaChaAudioContext = null;
 
 // Звуковые эффекты
 let audioContext;
@@ -360,12 +362,206 @@ class Animal {
     }
 }
 
+// Функция запуска анимации танцующей собаки
+function startDanceAnimation() {
+    // Создаем элемент для анимации
+    const dogAnimation = document.createElement('div');
+    dogAnimation.id = 'dog-animation';
+    dogAnimation.style.zIndex = '5';
+    gameOverScreen.appendChild(dogAnimation);
+
+    // Создаем canvas для анимации
+    const canvas = document.createElement('canvas');
+    canvas.width = 80;
+    canvas.height = 80;
+    dogAnimation.appendChild(canvas);
+
+    const ctx = canvas.getContext('2d');
+
+    // Кадры анимации танцующей собаки (новый спрайт)
+    const danceFrames = [
+        // Кадр 1 - исходное положение
+        [
+            [0,0,0,0,0,0,0,0],
+            [0,1,0,0,1,0,0,0],
+            [0,0,1,1,0,0,0,0],
+            [0,0,1,1,0,1,0,0],
+            [0,0,0,0,1,0,0,0],
+            [0,0,0,1,0,1,0,0],
+            [0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0]
+        ],
+        // Кадр 2 - наклон влево
+        [
+            [0,0,0,0,0,0,0,0],
+            [0,1,0,0,1,0,0,0],
+            [0,0,1,1,0,0,0,0],
+            [0,0,1,1,0,1,0,0],
+            [0,0,0,0,1,0,0,0],
+            [0,0,1,0,0,1,0,0],
+            [0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0]
+        ],
+        // Кадр 3 - наклон вправо
+        [
+            [0,0,0,0,0,0,0,0],
+            [0,1,0,0,1,0,0,0],
+            [0,0,1,1,0,0,0,0],
+            [0,0,1,1,0,1,0,0],
+            [0,0,0,0,1,0,0,0],
+            [0,0,0,1,0,0,1,0],
+            [0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0]
+        ],
+        // Кадр 4 - прыжок
+        [
+            [0,0,0,0,0,0,0,0],
+            [0,1,0,0,1,0,0,0],
+            [0,0,1,1,0,0,0,0],
+            [0,0,1,1,0,1,0,0],
+            [0,0,0,0,1,0,0,0],
+            [0,0,0,1,0,1,0,0],
+            [0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0]
+        ]
+    ];
+
+    let currentFrame = 0;
+
+    // Функция отрисовки кадра
+    function drawFrame(frame) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        const pixelSize = 10;
+
+        for (let y = 0; y < frame.length; y++) {
+            for (let x = 0; x < frame[y].length; x++) {
+                if (frame[y][x] === 1) {
+                    ctx.fillStyle = '#cc8866'; // Цвет собаки
+                    ctx.fillRect(x * pixelSize, y * pixelSize, pixelSize, pixelSize);
+                }
+            }
+        }
+    }
+
+    // Запускаем анимацию
+    drawFrame(danceFrames[0]);
+    dogAnimation.classList.add('dancing');
+
+    danceAnimationInterval = setInterval(() => {
+        currentFrame = (currentFrame + 1) % danceFrames.length;
+        drawFrame(danceFrames[currentFrame]);
+
+        // Добавляем небольшое перемещение для эффекта танца
+        if (currentFrame === 1) {
+            dogAnimation.style.transform = 'translateX(-5px)';
+        } else if (currentFrame === 2) {
+            dogAnimation.style.transform = 'translateX(5px)';
+        } else if (currentFrame === 3) {
+            dogAnimation.style.transform = 'translateY(-8px)';
+        } else {
+            dogAnimation.style.transform = 'translate(0, 0)';
+        }
+    }, 200);
+
+    // Добавляем музыку чача
+    try {
+        chaChaAudioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const playChaCha = () => {
+            // Простая мелодия в стиле чача
+            const sequence = [
+                { note: 261.63, duration: 0.2 }, // C4
+                { note: 293.66, duration: 0.2 }, // D4
+                { note: 329.63, duration: 0.2 }, // E4
+                { note: 349.23, duration: 0.2 }, // F4
+                { note: 392.00, duration: 0.4 }, // G4
+                { note: 349.23, duration: 0.2 }, // F4
+                { note: 329.63, duration: 0.2 }, // E4
+                { note: 293.66, duration: 0.2 }, // D4
+                { note: 261.63, duration: 0.4 }  // C4
+            ];
+
+            let time = chaChaAudioContext.currentTime;
+
+            for (let i = 0; i < sequence.length; i++) {
+                const oscillator = chaChaAudioContext.createOscillator();
+                const gainNode = chaChaAudioContext.createGain();
+
+                oscillator.connect(gainNode);
+                gainNode.connect(chaChaAudioContext.destination);
+
+                oscillator.type = 'square';
+                oscillator.frequency.setValueAtTime(sequence[i].note, time);
+
+                gainNode.gain.setValueAtTime(0.2, time);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, time + sequence[i].duration);
+
+                oscillator.start(time);
+                oscillator.stop(time + sequence[i].duration);
+
+                time += sequence[i].duration;
+            }
+
+            // Повторяем каждые 2.5 секунды
+            setTimeout(playChaCha, 2500);
+        };
+
+        playChaCha();
+    } catch (e) {
+        console.log("Аудио чача не поддерживается", e);
+    }
+
+    // Добавляем кнопку управления музыкой
+    const musicControl = document.createElement('div');
+    musicControl.className = 'music-control';
+    musicControl.innerHTML = '🔊';
+    gameOverScreen.appendChild(musicControl);
+
+    let musicPlaying = true;
+    musicControl.addEventListener('click', () => {
+        musicPlaying = !musicPlaying;
+        musicControl.innerHTML = musicPlaying ? '🔊' : '🔇';
+
+        if (musicPlaying && chaChaAudioContext) {
+            chaChaAudioContext.resume();
+        } else if (chaChaAudioContext) {
+            chaChaAudioContext.suspend();
+        }
+    });
+}
+
+// Функция остановки анимации танцующей собаки
+function stopDanceAnimation() {
+    if (danceAnimationInterval) {
+        clearInterval(danceAnimationInterval);
+        danceAnimationInterval = null;
+    }
+
+    if (chaChaAudioContext) {
+        chaChaAudioContext.close();
+        chaChaAudioContext = null;
+    }
+
+    // Удаляем элементы анимации
+    const dogAnimation = document.getElementById('dog-animation');
+    if (dogAnimation) {
+        dogAnimation.remove();
+    }
+
+    const musicControl = document.querySelector('.music-control');
+    if (musicControl) {
+        musicControl.remove();
+    }
+}
+
 // Инициализация игры
 function initGame() {
     // Остановка предыдущей анимации если есть
     if (animationFrameId) {
         cancelAnimationFrame(animationFrameId);
     }
+
+    // Останавливаем анимацию танцующей собаки
+    stopDanceAnimation();
 
     setupCanvas();
     score = 0;
@@ -421,6 +617,9 @@ function gameLoop(timestamp) {
             finalScoreElement.textContent = score;
             gameOverScreen.classList.remove('hidden');
             playSound('gameover');
+
+            // Запускаем анимацию танцующей собаки
+            startDanceAnimation();
         }
     }
 
