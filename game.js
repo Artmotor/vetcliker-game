@@ -29,11 +29,9 @@ function setupCanvas() {
     // Устанавливаем размеры canvas равными размерам контейнера
     canvas.width = containerRect.width;
     canvas.height = containerRect.height;
-
-    console.log('Canvas size:', canvas.width, 'x', canvas.height);
-    console.log('Container size:', containerRect.width, 'x', containerRect.height);
 }
 
+// Глобальные игровые переменные
 let score = 0;
 let speed = 1.0;
 let animals = [];
@@ -55,25 +53,6 @@ function initAudio() {
         // Создаем контекст только если его нет
         if (!audioContext) {
             audioContext = new (window.AudioContext || window.webkitAudioContext)();
-
-            // Для мобильных браузеров нужно запустить контекст по пользовательскому действию
-            document.addEventListener('click', function initAudioOnClick() {
-                if (audioContext && audioContext.state === 'suspended') {
-                    audioContext.resume().then(() => {
-                        console.log('Audio context resumed');
-                    }).catch(console.error);
-                }
-                document.removeEventListener('click', initAudioOnClick);
-            }, { once: true });
-
-            document.addEventListener('touchstart', function initAudioOnTouch() {
-                if (audioContext && audioContext.state === 'suspended') {
-                    audioContext.resume().then(() => {
-                        console.log('Audio context resumed from touch');
-                    }).catch(console.error);
-                }
-                document.removeEventListener('touchstart', initAudioOnTouch);
-            }, { once: true });
         }
         return true;
     } catch (e) {
@@ -665,19 +644,6 @@ window.addEventListener('load', () => {
         soundEnabled = savedSoundSetting === 'true';
         soundToggle.textContent = soundEnabled ? '🔊' : '🔇';
     }
-
-    // Добавляем обработчик для первого клика/тапа для активации аудио
-    const activateAudio = () => {
-        if (audioContext && audioContext.state === 'suspended') {
-            audioContext.resume().then(() => {
-                console.log('Audio activated');
-                playSound('click');
-            }).catch(console.error);
-        }
-    };
-
-    document.addEventListener('click', activateAudio, { once: true });
-    document.addEventListener('touchstart', activateAudio, { once: true });
 });
 
 // Обработка клавиши P для паузы
