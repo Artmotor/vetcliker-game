@@ -254,6 +254,37 @@ button:hover, button:active {
     box-shadow: none;
 }
 
+/* Новые кнопки для мобильных устройств внизу экрана */
+#mobile-bottom-controls {
+    display: none;
+    position: absolute;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    gap: 20px;
+    z-index: 5;
+}
+
+.mobile-control-btn {
+    width: 50px;
+    height: 50px;
+    background-color: rgba(255, 255, 255, 0.9);
+    border: 2px solid #333;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 20px;
+    user-select: none;
+    box-shadow: 0 4px 0 #000;
+    cursor: pointer;
+}
+
+.mobile-control-btn:active {
+    transform: translateY(4px);
+    box-shadow: none;
+}
+
 @media (max-width: 768px) {
     body {
         padding: 0;
@@ -288,7 +319,7 @@ button:hover, button:active {
     }
 
     #tools {
-        bottom: 15px;
+        bottom: 70px;
         padding: 8px;
         gap: 8px;
     }
@@ -301,13 +332,22 @@ button:hover, button:active {
 
     .mobile-controls {
         display: flex;
-        bottom: 80px;
+        bottom: 130px;
     }
 
     .mobile-btn {
         width: 50px;
         height: 50px;
         font-size: 20px;
+    }
+
+    /* Показываем мобильные кнопки внизу */
+    #mobile-bottom-controls {
+        display: flex;
+    }
+
+    #controls {
+        display: none;
     }
 
     #start-screen, #game-over, #rules-screen {
@@ -383,11 +423,15 @@ button:hover, button:active {
     }
 
     #tools {
-        bottom: 10px;
+        bottom: 80px;
     }
 
     .mobile-controls {
-        bottom: 70px;
+        bottom: 140px;
+    }
+
+    #mobile-bottom-controls {
+        bottom: 15px;
     }
 }
 
@@ -411,6 +455,16 @@ button:hover, button:active {
         width: 30px;
         height: 30px;
         font-size: 14px;
+    }
+
+    #mobile-bottom-controls {
+        bottom: 5px;
+    }
+
+    .mobile-control-btn {
+        width: 40px;
+        height: 40px;
+        font-size: 16px;
     }
 }
 
@@ -437,5 +491,11 @@ button:hover, button:active {
         width: 30px;
         height: 30px;
         font-size: 14px;
+    }
+
+    .mobile-control-btn {
+        width: 45px;
+        height: 45px;
+        font-size: 18px;
     }
 }

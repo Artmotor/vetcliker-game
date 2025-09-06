@@ -20,6 +20,8 @@ const shareBtn = document.getElementById('share-btn');
 const tools = document.querySelectorAll('.tool');
 const tapBtn = document.getElementById('btn-tap');
 const soundToggle = document.getElementById('sound-toggle');
+const mobilePauseBtn = document.getElementById('mobile-pause-btn');
+const mobileSoundToggle = document.getElementById('mobile-sound-toggle');
 
 // Настройка размера canvas
 function setupCanvas() {
@@ -123,23 +125,29 @@ function playSoundActual(type, animalType) {
                 break;
 
             case 'start':
+                // Весёлый звук при старте - фанфары
                 oscillator.type = 'sine';
-                const startFreqs = [523.25, 659.25, 783.99, 1046.50];
+                const startFreqs = [523.25, 659.25, 783.99, 1046.50, 1318.51, 1567.98];
+                const startTimes = [0, 0.1, 0.2, 0.3, 0.4, 0.5];
+
                 for (let i = 0; i < startFreqs.length; i++) {
-                    oscillator.frequency.setValueAtTime(startFreqs[i], audioContext.currentTime + i * 0.1);
+                    oscillator.frequency.setValueAtTime(startFreqs[i], audioContext.currentTime + startTimes[i]);
                 }
-                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.4);
+                gainNode.gain.setValueAtTime(0.4, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.6);
                 break;
 
             case 'gameover':
-                oscillator.type = 'sawtooth';
-                oscillator.frequency.setValueAtTime(523.25, audioContext.currentTime);
-                oscillator.frequency.setValueAtTime(392.00, audioContext.currentTime + 0.2);
-                oscillator.frequency.setValueAtTime(261.63, audioContext.currentTime + 0.4);
-                oscillator.frequency.setValueAtTime(196.00, audioContext.currentTime + 0.6);
-                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.8);
+                // Весёлый звук при окончании - другая мелодия
+                oscillator.type = 'triangle';
+                const gameoverFreqs = [392.00, 493.88, 587.33, 698.46, 783.99, 880.00];
+                const gameoverTimes = [0, 0.15, 0.3, 0.45, 0.6, 0.75];
+
+                for (let i = 0; i < gameoverFreqs.length; i++) {
+                    oscillator.frequency.setValueAtTime(gameoverFreqs[i], audioContext.currentTime + gameoverTimes[i]);
+                }
+                gainNode.gain.setValueAtTime(0.4, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.9);
                 break;
 
             case 'click':
@@ -156,10 +164,27 @@ function playSoundActual(type, animalType) {
                 gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
                 gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
                 break;
+
+            case 'fanfare':
+                // Дополнительные фанфары для особых событий
+                oscillator.type = 'sine';
+                const fanfareFreqs = [523.25, 659.25, 783.99, 1046.50, 1318.51, 1567.98, 2093.00];
+                const fanfareTimes = [0, 0.08, 0.16, 0.24, 0.32, 0.4, 0.48];
+
+                for (let i = 0; i < fanfareFreqs.length; i++) {
+                    oscillator.frequency.setValueAtTime(fanfareFreqs[i], audioContext.currentTime + fanfareTimes[i]);
+                }
+                gainNode.gain.setValueAtTime(0.5, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.56);
+                break;
         }
 
         oscillator.start();
-        oscillator.stop(audioContext.currentTime + (type === 'gameover' ? 0.8 : 0.3));
+        let duration = 0.3;
+        if (type === 'gameover') duration = 0.9;
+        if (type === 'start') duration = 0.6;
+        if (type === 'fanfare') duration = 0.56;
+        oscillator.stop(audioContext.currentTime + duration);
     } catch (e) {
         console.log("Ошибка воспроизведения звука", e);
     }
@@ -169,6 +194,7 @@ function playSoundActual(type, animalType) {
 function toggleSound() {
     soundEnabled = !soundEnabled;
     soundToggle.textContent = soundEnabled ? '🔊' : '🔇';
+    mobileSoundToggle.textContent = soundEnabled ? '🔊' : '🔇';
     playSound('click');
     localStorage.setItem('vetGameSound', soundEnabled);
 }
@@ -180,6 +206,7 @@ function togglePause() {
     gamePaused = !gamePaused;
     pauseOverlay.classList.toggle('hidden', !gamePaused);
     pauseBtn.textContent = gamePaused ? '▶️' : '⏸️';
+    mobilePauseBtn.textContent = gamePaused ? '▶️' : '⏸️';
     playSound('pause');
 
     // Для мобильных устройств - обработка состояния аудиоконтекста
@@ -274,7 +301,12 @@ class Animal {
                 this.health = 100;
                 score++;
                 scoreElement.textContent = score;
-                playSound('heal');
+                // Воспроизводим фанфары при достижении круглых чисел
+                if (score % 10 === 0) {
+                    playSound('fanfare');
+                } else {
+                    playSound('heal');
+                }
                 return true;
             }
         }
@@ -349,6 +381,7 @@ function initGame() {
     missedElement.textContent = missedAnimals;
     pauseOverlay.classList.add('hidden');
     pauseBtn.textContent = '⏸️';
+    mobilePauseBtn.textContent = '⏸️';
 
     initAudio();
     playSound('start');
@@ -595,6 +628,20 @@ backBtn.addEventListener('click', hideRules);
 shareBtn.addEventListener('click', shareResult);
 soundToggle.addEventListener('click', toggleSound);
 
+// Обработчики для мобильных кнопок
+mobilePauseBtn.addEventListener('click', togglePause);
+mobileSoundToggle.addEventListener('click', toggleSound);
+
+mobilePauseBtn.addEventListener('touchstart', (event) => {
+    event.preventDefault();
+    togglePause();
+});
+
+mobileSoundToggle.addEventListener('touchstart', (event) => {
+    event.preventDefault();
+    toggleSound();
+});
+
 // Мобильные элементы управления
 if (tapBtn) {
     tapBtn.addEventListener('click', () => {
@@ -643,6 +690,7 @@ window.addEventListener('load', () => {
     if (savedSoundSetting !== null) {
         soundEnabled = savedSoundSetting === 'true';
         soundToggle.textContent = soundEnabled ? '🔊' : '🔇';
+        mobileSoundToggle.textContent = soundEnabled ? '🔊' : '🔇';
     }
 });
 

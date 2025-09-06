@@ -10,75 +10,81 @@
 <body>
     <div id="game-container">
         <canvas id="game-canvas"></canvas>
-        
+
         <div id="ui">
             <div>Вылечено: <span id="score">0</span></div>
             <div>Скорость: x<span id="speed">1.0</span></div>
             <div>Пропущено: <span id="missed">0</span>/5</div>
-            <div id="sound-toggle">🔊</div>
         </div>
-        
+
         <div id="controls">
             <div class="control-btn" id="pause-btn">⏸️</div>
+            <div class="control-btn" id="sound-toggle">🔊</div>
             <div class="control-btn" id="rules-btn">❓</div>
         </div>
-        
+
         <div id="tools">
             <div class="tool active" id="tool-syringe" title="Шприц">💉</div>
             <div class="tool" id="tool-stethoscope" title="Стетоскоп">🩺</div>
             <div class="tool" id="tool-pill" title="Таблетка">💊</div>
         </div>
-        
+
         <div class="mobile-controls">
             <div class="mobile-btn" id="btn-tap">👆</div>
         </div>
-        
+
+        <!-- Новые кнопки для мобильных устройств внизу -->
+        <div id="mobile-bottom-controls">
+            <div class="mobile-control-btn" id="mobile-pause-btn">⏸️</div>
+            <div class="mobile-control-btn" id="mobile-sound-toggle">🔊</div>
+        </div>
+
         <div id="pause-overlay" class="hidden">
             <div class="pixel-title">ПАУЗА</div>
             <div class="pixel-text">Нажмите ⏸️ чтобы продолжить</div>
             <div class="pixel-text">Или нажмите P на клавиатуре</div>
         </div>
-        
+
         <div id="start-screen">
             <div class="pixel-border">
                 <div class="pixel-title">🐾 ВетКликер 🐾</div>
                 <div class="pixel-subtitle">Спасайте животных!</div>
                 <div class="pixel-text">Используйте инструменты для лечения</div>
                 <div class="pixel-text">Не пропустите более 5 животных!</div>
-                
+
                 <div class="buttons-container">
                     <button id="start-button">🎮 НАЧАТЬ ИГРУ</button>
                     <button id="rules-btn-start" class="rules-btn">📖 ПРАВИЛА</button>
                 </div>
             </div>
         </div>
-        
+
         <div id="game-over" class="hidden">
             <div class="pixel-border">
                 <div class="pixel-title">🎯 ИГРА ОКОНЧЕНА!</div>
                 <div class="pixel-subtitle">Вы вылечили: <span id="final-score">0</span> животных</div>
-                
+
                 <div class="buttons-container">
                     <button id="restart-button">🔄 ИГРАТЬ СНОВА</button>
                     <button id="share-btn" class="share-btn">📤 ПОДЕЛИТЬСЯ</button>
                     <button id="rules-btn-end" class="rules-btn">📖 ПРАВИЛА</button>
                 </div>
-                
+
                 <div class="pixel-text">Прокачай свои знания!</div>
                 <a id="vet-link" href="https://vgau.edu37.ru/calendar/" target="_blank">🎓 Узнать больше об обучении</a>
             </div>
         </div>
-        
+
         <div id="rules-screen" class="hidden">
             <div class="pixel-border">
                 <div class="pixel-title">📖 ПРАВИЛА ИГРЫ</div>
-                
+
                 <div class="pixel-text">🎯 Цель: Лечите животных, нажимая на них</div>
                 <div class="pixel-text">💉 Инструменты: Выбирайте шприц, стетоскоп или таблетки</div>
                 <div class="pixel-text">⚠️ Осторожно: Не пропустите более 5 животных!</div>
                 <div class="pixel-text">🚀 Скорость: Увеличивается с каждым вылеченным животным</div>
                 <div class="pixel-text">⏸️ Пауза: Нажмите ⏸️ чтобы остановить игру</div>
-                
+
                 <div class="buttons-container">
                     <button id="back-btn">← НАЗАД</button>
                 </div>
