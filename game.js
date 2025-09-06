@@ -26,41 +26,88 @@ function setupCanvas() {
     const container = document.getElementById('game-container');
     const containerRect = container.getBoundingClientRect();
 
-    // Используем размеры контейнера вместо вычислений
+    // Устанавливаем размеры canvas равными размерам контейнера
     canvas.width = containerRect.width;
     canvas.height = containerRect.height;
 
-    // Для мобильных устройств ограничиваем максимальную высоту
-    if (window.innerWidth <= 768) {
-        const maxHeight = window.innerHeight * 0.7;
-        if (canvas.height > maxHeight) {
-            canvas.height = maxHeight;
-            canvas.width = canvas.height * (16/9);
-        }
-    }
+    console.log('Canvas size:', canvas.width, 'x', canvas.height);
+    console.log('Container size:', containerRect.width, 'x', containerRect.height);
 }
+
+let score = 0;
+let speed = 1.0;
+let animals = [];
+let gameRunning = false;
+let gamePaused = false;
+let lastSpawnTime = 0;
+let missedAnimals = 0;
+let lastUpdateTime = 0;
+let activeTool = 'syringe';
+let soundEnabled = true;
+let animationFrameId = null;
 
 // Звуковые эффекты
 let audioContext;
 
+// Улучшенная инициализация аудио
 function initAudio() {
     try {
-        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        // Создаем контекст только если его нет
+        if (!audioContext) {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+            // Для мобильных браузеров нужно запустить контекст по пользовательскому действию
+            document.addEventListener('click', function initAudioOnClick() {
+                if (audioContext && audioContext.state === 'suspended') {
+                    audioContext.resume().then(() => {
+                        console.log('Audio context resumed');
+                    }).catch(console.error);
+                }
+                document.removeEventListener('click', initAudioOnClick);
+            }, { once: true });
+
+            document.addEventListener('touchstart', function initAudioOnTouch() {
+                if (audioContext && audioContext.state === 'suspended') {
+                    audioContext.resume().then(() => {
+                        console.log('Audio context resumed from touch');
+                    }).catch(console.error);
+                }
+                document.removeEventListener('touchstart', initAudioOnTouch);
+            }, { once: true });
+        }
+        return true;
     } catch (e) {
         console.log("Аудио не поддерживается", e);
+        return false;
     }
 }
 
 function playSound(type, animalType) {
-    if (!soundEnabled || !audioContext) return;
-    
+    if (!soundEnabled) return;
+
+    // Убедимся, что аудиоконтекст инициализирован
+    if (!audioContext) {
+        if (!initAudio()) return;
+    }
+
+    // Проверим состояние аудиоконтекста
+    if (audioContext.state === 'suspended') {
+        audioContext.resume().then(() => {
+            playSoundActual(type, animalType);
+        }).catch(console.error);
+    } else {
+        playSoundActual(type, animalType);
+    }
+}
+
+function playSoundActual(type, animalType) {
     try {
         const oscillator = audioContext.createOscillator();
         const gainNode = audioContext.createGain();
-        
+
         oscillator.connect(gainNode);
         gainNode.connect(audioContext.destination);
-        
+
         switch(type) {
             case 'heal':
                 oscillator.type = 'sine';
@@ -70,7 +117,7 @@ function playSound(type, animalType) {
                 gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
                 gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
                 break;
-                
+
             case 'miss':
                 oscillator.type = 'sawtooth';
                 oscillator.frequency.setValueAtTime(440, audioContext.currentTime);
@@ -78,14 +125,14 @@ function playSound(type, animalType) {
                 gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
                 gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.4);
                 break;
-                
+
             case 'select':
                 oscillator.type = 'square';
                 oscillator.frequency.setValueAtTime(392, audioContext.currentTime);
                 gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
                 gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
                 break;
-                
+
             case 'animal':
                 const freq = ANIMAL_SOUND_FREQUENCIES[animalType] || ANIMAL_SOUND_FREQUENCIES.cat;
                 oscillator.type = 'triangle';
@@ -95,7 +142,7 @@ function playSound(type, animalType) {
                 gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
                 gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
                 break;
-                
+
             case 'start':
                 oscillator.type = 'sine';
                 const startFreqs = [523.25, 659.25, 783.99, 1046.50];
@@ -105,7 +152,7 @@ function playSound(type, animalType) {
                 gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
                 gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.4);
                 break;
-                
+
             case 'gameover':
                 oscillator.type = 'sawtooth';
                 oscillator.frequency.setValueAtTime(523.25, audioContext.currentTime);
@@ -115,14 +162,14 @@ function playSound(type, animalType) {
                 gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
                 gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.8);
                 break;
-                
+
             case 'click':
                 oscillator.type = 'square';
                 oscillator.frequency.setValueAtTime(330, audioContext.currentTime);
                 gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
                 gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.05);
                 break;
-                
+
             case 'pause':
                 oscillator.type = 'square';
                 oscillator.frequency.setValueAtTime(262, audioContext.currentTime);
@@ -131,7 +178,7 @@ function playSound(type, animalType) {
                 gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
                 break;
         }
-        
+
         oscillator.start();
         oscillator.stop(audioContext.currentTime + (type === 'gameover' ? 0.8 : 0.3));
     } catch (e) {
@@ -150,12 +197,12 @@ function toggleSound() {
 // Пауза игры
 function togglePause() {
     if (!gameRunning) return;
-    
+
     gamePaused = !gamePaused;
     pauseOverlay.classList.toggle('hidden', !gamePaused);
     pauseBtn.textContent = gamePaused ? '▶️' : '⏸️';
     playSound('pause');
-    
+
     // Для мобильных устройств - обработка состояния аудиоконтекста
     if (audioContext) {
         if (gamePaused && audioContext.state === 'running') {
@@ -169,7 +216,7 @@ function togglePause() {
 // Поделиться результатом
 function shareResult() {
     const shareText = `Я вылечил ${score} животных в игре "ВетКликер"! 🐾🎮 Попробуй побить мой рекорд!`;
-    
+
     if (navigator.share) {
         navigator.share({
             title: 'ВетКликер',
@@ -228,20 +275,20 @@ class Animal {
         this.sprite = this.createSprite();
         this.orientation = Math.random() > 0.5 ? 'front' : 'side';
     }
-    
+
     createSprite() {
         const spriteData = ANIMAL_SPRITES[this.type] || ANIMAL_SPRITES.cat;
         const orientationData = spriteData[this.orientation] || spriteData.front;
-        
+
         return {
             pixels: orientationData,
             color: ANIMAL_COLORS[this.type] || ANIMAL_COLORS.cat
         };
     }
-    
+
     update(deltaTime) {
         this.x -= this.speed * speed * deltaTime;
-        
+
         if (this.healing) {
             this.healProgress += deltaTime * 0.1;
             if (this.healProgress >= 1) {
@@ -252,41 +299,41 @@ class Animal {
                 return true;
             }
         }
-        
+
         if (this.x + this.width < 0) {
             missedAnimals++;
             missedElement.textContent = missedAnimals;
             playSound('miss');
             return true;
         }
-        
+
         return false;
     }
-    
+
     draw() {
         if (!this.sprite || !this.sprite.pixels) return;
-        
+
         const pixelSize = this.width / 7;
-        
+
         for (let row = 0; row < 7; row++) {
             if (!this.sprite.pixels[row]) continue;
-            
+
             for (let col = 0; col < 7; col++) {
                 if (this.sprite.pixels[row][col]) {
                     ctx.fillStyle = this.sprite.color;
                     ctx.fillRect(
-                        this.x + col * pixelSize, 
-                        this.y + row * pixelSize, 
-                        pixelSize, 
+                        this.x + col * pixelSize,
+                        this.y + row * pixelSize,
+                        pixelSize,
                         pixelSize
                     );
                 }
             }
         }
-        
+
         ctx.fillStyle = '#333';
         ctx.fillRect(this.x, this.y - 10, this.width, 5);
-        
+
         if (this.healing) {
             ctx.fillStyle = '#4caf50';
             ctx.fillRect(this.x, this.y - 10, this.width * this.healProgress, 5);
@@ -295,9 +342,9 @@ class Animal {
             ctx.fillRect(this.x, this.y - 10, this.width * (this.health / 100), 5);
         }
     }
-    
+
     isPointInside(x, y) {
-        return x >= this.x && x <= this.x + this.width && 
+        return x >= this.x && x <= this.x + this.width &&
                y >= this.y && y <= this.y + this.height;
     }
 }
@@ -308,7 +355,7 @@ function initGame() {
     if (animationFrameId) {
         cancelAnimationFrame(animationFrameId);
     }
-    
+
     setupCanvas();
     score = 0;
     speed = 1.0;
@@ -317,16 +364,16 @@ function initGame() {
     lastSpawnTime = 0;
     gameRunning = true;
     gamePaused = false;
-    
+
     scoreElement.textContent = score;
     speedElement.textContent = speed.toFixed(1);
     missedElement.textContent = missedAnimals;
     pauseOverlay.classList.add('hidden');
     pauseBtn.textContent = '⏸️';
-    
+
     initAudio();
     playSound('start');
-    
+
     lastUpdateTime = 0;
     gameLoop();
 }
@@ -336,16 +383,16 @@ function gameLoop(timestamp) {
     if (!lastUpdateTime) lastUpdateTime = timestamp;
     const deltaTime = (timestamp - lastUpdateTime) / 16.67;
     lastUpdateTime = timestamp;
-    
+
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     drawBackground();
-    
+
     if (gameRunning && !gamePaused) {
         if (timestamp - lastSpawnTime > 2000 / speed) {
             spawnAnimal();
             lastSpawnTime = timestamp;
         }
-        
+
         for (let i = animals.length - 1; i >= 0; i--) {
             if (animals[i].update(deltaTime)) {
                 animals.splice(i, 1);
@@ -353,10 +400,10 @@ function gameLoop(timestamp) {
                 animals[i].draw();
             }
         }
-        
+
         speed = 1.0 + score * 0.05;
         speedElement.textContent = speed.toFixed(1);
-        
+
         if (missedAnimals >= 5) {
             gameRunning = false;
             finalScoreElement.textContent = score;
@@ -364,7 +411,7 @@ function gameLoop(timestamp) {
             playSound('gameover');
         }
     }
-    
+
     animationFrameId = requestAnimationFrame(gameLoop);
 }
 
@@ -372,17 +419,17 @@ function gameLoop(timestamp) {
 function drawBackground() {
     ctx.fillStyle = '#a5d8ff';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
+
     ctx.fillStyle = '#8bc34a';
     ctx.fillRect(0, canvas.height - 40, canvas.width, 40);
-    
+
     ctx.fillStyle = '#ffffff';
     for (let i = 0; i < 5; i++) {
         const x = (Date.now() / 20 + i * 200) % (canvas.width + 100) - 50;
         const y = 50 + i * 30;
         drawPixelatedCloud(x, y);
     }
-    
+
     ctx.fillStyle = '#ffeb3b';
     drawPixelatedSun(canvas.width - 50, 50);
     drawVetClinic();
@@ -401,7 +448,7 @@ function drawPixelatedSun(x, y) {
     ctx.beginPath();
     ctx.arc(x, y, 25, 0, Math.PI * 2);
     ctx.fill();
-    
+
     for (let i = 0; i < 8; i++) {
         const angle = (i / 8) * Math.PI * 2;
         ctx.beginPath();
@@ -416,10 +463,10 @@ function drawPixelatedSun(x, y) {
 function drawVetClinic() {
     const x = 50;
     const y = canvas.height - 140;
-    
+
     ctx.fillStyle = '#ffccbc';
     ctx.fillRect(x, y, 100, 100);
-    
+
     ctx.fillStyle = '#ff5722';
     ctx.beginPath();
     ctx.moveTo(x - 10, y);
@@ -427,14 +474,14 @@ function drawVetClinic() {
     ctx.lineTo(x + 110, y);
     ctx.closePath();
     ctx.fill();
-    
+
     ctx.fillStyle = '#795548';
     ctx.fillRect(x + 40, y + 30, 20, 70);
-    
+
     ctx.fillStyle = '#bbdefb';
     ctx.fillRect(x + 15, y + 20, 20, 20);
     ctx.fillRect(x + 65, y + 20, 20, 20);
-    
+
     ctx.fillStyle = '#fff';
     ctx.fillRect(x + 29, y - 10, 51, 10);
     ctx.fillStyle = '#333';
@@ -445,14 +492,14 @@ function drawVetClinic() {
 function spawnAnimal() {
     const type = ANIMAL_TYPES[Math.floor(Math.random() * ANIMAL_TYPES.length)];
     const y = canvas.height - 110 - Math.random() * 200;
-    
+
     animals.push(new Animal(type, canvas.width, y));
     playSound('animal', type);
 }
 
 function handleCanvasClick(x, y) {
     if (!gameRunning || gamePaused) return;
-    
+
     for (const animal of animals) {
         if (animal.isPointInside(x, y)) {
             animal.healing = true;
@@ -466,10 +513,10 @@ canvas.addEventListener('click', (event) => {
     const rect = canvas.getBoundingClientRect();
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
-    
+
     const x = (event.clientX - rect.left) * scaleX;
     const y = (event.clientY - rect.top) * scaleY;
-    
+
     handleCanvasClick(x, y);
 });
 
@@ -477,21 +524,21 @@ canvas.addEventListener('click', (event) => {
 canvas.addEventListener('touchstart', (event) => {
     event.preventDefault();
     if (gamePaused) return;
-    
+
     const rect = canvas.getBoundingClientRect();
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
-    
+
     const touch = event.touches[0];
     const x = (touch.clientX - rect.left) * scaleX;
     const y = (touch.clientY - rect.top) * scaleY;
-    
+
     handleCanvasClick(x, y);
 }, { passive: false });
 
 function drawToolEffect(x, y, tool) {
     ctx.save();
-    
+
     switch(tool) {
         case 'syringe':
             ctx.fillStyle = '#fff';
@@ -503,7 +550,7 @@ function drawToolEffect(x, y, tool) {
             ctx.closePath();
             ctx.fill();
             break;
-            
+
         case 'stethoscope':
             ctx.strokeStyle = '#4caf50';
             ctx.lineWidth = 2;
@@ -511,7 +558,7 @@ function drawToolEffect(x, y, tool) {
             ctx.arc(x, y, 15, 0, Math.PI * 2);
             ctx.stroke();
             break;
-            
+
         case 'pill':
             ctx.fillStyle = '#f44336';
             ctx.beginPath();
@@ -519,9 +566,9 @@ function drawToolEffect(x, y, tool) {
             ctx.fill();
             break;
     }
-    
+
     ctx.restore();
-    
+
     setTimeout(() => {
         if (gameRunning) {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -539,7 +586,7 @@ tools.forEach(tool => {
         activeTool = tool.id.replace('tool-', '');
         playSound('select');
     });
-    
+
     tool.addEventListener('touchstart', (event) => {
         event.preventDefault();
         tools.forEach(t => t.classList.remove('active'));
@@ -573,30 +620,30 @@ soundToggle.addEventListener('click', toggleSound);
 if (tapBtn) {
     tapBtn.addEventListener('click', () => {
         if (!gameRunning || gamePaused) return;
-        
+
         for (const animal of animals) {
             if (!animal.healing) {
                 animal.healing = true;
                 drawToolEffect(
-                    animal.x + animal.width/2, 
-                    animal.y + animal.height/2, 
+                    animal.x + animal.width/2,
+                    animal.y + animal.height/2,
                     activeTool
                 );
                 break;
             }
         }
     });
-    
+
     tapBtn.addEventListener('touchstart', (event) => {
         event.preventDefault();
         if (!gameRunning || gamePaused) return;
-        
+
         for (const animal of animals) {
             if (!animal.healing) {
                 animal.healing = true;
                 drawToolEffect(
-                    animal.x + animal.width/2, 
-                    animal.y + animal.height/2, 
+                    animal.x + animal.width/2,
+                    animal.y + animal.height/2,
                     activeTool
                 );
                 break;
@@ -609,13 +656,28 @@ if (tapBtn) {
 window.addEventListener('load', () => {
     setupCanvas();
     startScreen.classList.remove('hidden');
+
+    // Инициализируем аудио при загрузке
     initAudio();
-    
+
     const savedSoundSetting = localStorage.getItem('vetGameSound');
     if (savedSoundSetting !== null) {
         soundEnabled = savedSoundSetting === 'true';
         soundToggle.textContent = soundEnabled ? '🔊' : '🔇';
     }
+
+    // Добавляем обработчик для первого клика/тапа для активации аудио
+    const activateAudio = () => {
+        if (audioContext && audioContext.state === 'suspended') {
+            audioContext.resume().then(() => {
+                console.log('Audio activated');
+                playSound('click');
+            }).catch(console.error);
+        }
+    };
+
+    document.addEventListener('click', activateAudio, { once: true });
+    document.addEventListener('touchstart', activateAudio, { once: true });
 });
 
 // Обработка клавиши P для паузы
@@ -643,5 +705,12 @@ document.addEventListener('touchmove', function(event) {
 window.addEventListener('blur', () => {
     if (gameRunning && !gamePaused) {
         togglePause();
+    }
+});
+
+// Обработка изменения размера окна
+window.addEventListener('resize', () => {
+    if (gameRunning) {
+        setupCanvas();
     }
 });
